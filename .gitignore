@@ -1,0 +1,24 @@
+# 依赖与构建产物
+node_modules/
+dist/
+dist-new/
+
+# 本机工具与私有数据（AI 会话、安全扫描历史、工作记录）
+.zcode/
+.mimosa/
+.workbuddy/
+
+# 日志与临时文件
+*.log
+*.tmp
+nul
+.test-run/
+
+# 本机运行配置（黑屏兜底标记因机器而异，见 README）
+gpu-off.flag
+
+# 编辑器与系统文件
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

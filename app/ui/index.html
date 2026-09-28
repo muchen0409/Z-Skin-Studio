@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src file: data:; style-src 'self' 'unsafe-inline'">
+<title>Zcode+ 管理控制台</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      <div class="logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#241505" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg>
+      </div>
+      <div>
+        <h1>Zcode+</h1>
+        <p>管理控制台</p>
+      </div>
+    </div>
+    <nav class="nav-group">
+      <div class="nav-label">工作区</div>
+      <button class="nav-item active" id="navSkin" data-page="skin">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg>
+        皮肤管理
+      </button>
+      <button class="nav-item" id="navVersion" data-page="version">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        版本管理
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <span class="dot off" id="footDot"></span>
+      <span id="footText">ZCode 未运行</span>
+      <span id="footVersion" style="margin-left:auto; color:var(--text-dim);"></span>
+    </div>
+  </aside>
+
+  <main>
+    <div id="pageSkin">
+    <h2>皮肤管理</h2>
+
+    <section class="card" aria-labelledby="runTitle">
+      <h3 id="runTitle">运行状态</h3>
+      <div class="run-grid">
+        <div class="run-toggle">
+          <div class="info">
+            <b>启用 Zcode 皮肤</b>
+            <span>应用会保存当前图片与主题配置；恢复原始外观不会删除主题</span>
+          </div>
+          <button class="switch" id="switch" role="switch" aria-checked="false" aria-label="启用 Zcode 皮肤"></button>
+        </div>
+        <div class="status-box">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5M12 8h.01"/></svg>
+          <div>
+            <span class="label">当前状态</span>
+            <span class="value" id="statusVal">检测中…</span>
+          </div>
+        </div>
+      </div>
+      <div class="run-actions">
+        <button class="btn" id="enableBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>
+          启用皮肤
+        </button>
+        <button class="btn ghost" id="restoreBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          恢复 Zcode 外观
+        </button>
+        <button class="btn ghost" id="diagBtn">连接诊断</button>
+        <span id="runMsg"></span>
+      </div>
+      <div id="diagResult" style="display:none; margin-top:12px;"></div>
+      <div class="run-actions" id="zcodeRow" style="margin-top:10px; display:none;">
+        <span style="font-size:12.5px; color:var(--err);" id="zcodeMissing">未找到 ZCode.exe</span>
+        <button class="link-btn" id="chooseZcodeBtn">更改 ZCode 路径…</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="themesTitle">
+      <div class="themes-head">
+        <div class="titles">
+          <h3 id="themesTitle">我的主题</h3>
+          <div class="desc">选择卡片只会载入草稿；点击「应用主题」才会保存为待启用主题并生效。</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost" id="importBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            导入主题
+          </button>
+          <button class="btn" id="applyBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>
+            应用主题
+          </button>
+        </div>
+      </div>
+
+  <div id="draftParams" style="display:none;">
+    <label for="alpha">面板透明度</label>
+    <input type="range" id="alpha" min="2" max="90" value="10">
+    <span id="alphaVal">.10</span>
+    <label>显示位置</label>
+    <div class="seg" role="group" aria-label="图片显示位置">
+      <button data-pos="left">靠左</button>
+      <button data-pos="center">居中</button>
+      <button data-pos="right">靠右</button>
+    </div>
+  </div>
+
+  <div id="appearanceRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+    <label>ZCode 深浅色</label>
+    <div class="seg" role="group" aria-label="深浅色外观">
+      <button data-app="follow">跟随 ZCode</button>
+      <button data-app="zai-dark">深色</button>
+      <button data-app="zai-light">浅色</button>
+    </div>
+    <span style="font-size:12px; color:var(--text-dim);">在下次启用/应用皮肤时随注入生效，非跟随模式会写入 ZCode 自身的主题偏好</span>
+  </div>
+
+  <div id="rotationRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+    <label>主题轮换</label>
+    <button class="switch" id="rotSwitch" role="switch" aria-checked="false" aria-label="启用主题轮换"></button>
+    <label for="rotInterval">间隔</label>
+    <select id="rotInterval">
+      <option value="1">1 分钟</option>
+      <option value="5">5 分钟</option>
+      <option value="30">30 分钟</option>
+      <option value="60">1 小时</option>
+      <option value="180">3 小时</option>
+      <option value="1440">每天</option>
+    </select>
+    <div class="seg" role="group" aria-label="轮换顺序">
+      <button data-order="sequential">顺序</button>
+      <button data-order="random">随机</button>
+    </div>
+    <span style="font-size:12px; color:var(--text-dim);">在主题卡 ⋯ 菜单把主题加入轮换池（卡上有「轮换」角标）；仅当皮肤已启用时才会轮换</span>
+  </div>
+
+  <div id="filterRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+    <label>背景滤镜</label>
+    <label style="min-width:auto;">模糊</label>
+    <input type="range" id="fBlur" min="0" max="20" value="0" style="flex:0 1 90px; min-width:70px;">
+    <span class="fval" id="fBlurVal">0px</span>
+    <label style="min-width:auto;">亮度</label>
+    <input type="range" id="fBright" min="50" max="150" value="100" style="flex:0 1 90px; min-width:70px;">
+    <span class="fval" id="fBrightVal">100%</span>
+    <label style="min-width:auto;">对比</label>
+    <input type="range" id="fContrast" min="50" max="150" value="100" style="flex:0 1 90px; min-width:70px;">
+    <span class="fval" id="fContrastVal">100%</span>
+    <label style="min-width:auto;">饱和</label>
+    <input type="range" id="fSatur" min="0" max="200" value="100" style="flex:0 1 90px; min-width:70px;">
+    <span class="fval" id="fSaturVal">100%</span>
+    <label>可读性遮罩</label>
+    <div class="seg" role="group" aria-label="可读性遮罩强度">
+      <button data-shade="0">关</button>
+      <button data-shade="1">轻</button>
+      <button data-shade="2">重</button>
+    </div>
+  </div>
+
+  <div id="startupRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+    <label>开机自启</label>
+    <button class="switch" id="autostartSwitch" role="switch" aria-checked="false" aria-label="开机自启（驻留托盘）"></button>
+    <label>启动后自动应用上次主题</label>
+    <button class="switch" id="autoApplySwitch" role="switch" aria-checked="false" aria-label="启动后自动应用上次主题"></button>
+    <label>全局快捷键</label>
+    <button class="switch" id="hotkeySwitch" role="switch" aria-checked="false" aria-label="全局快捷键"></button>
+    <span style="font-size:12px; color:var(--text-dim);" title="Alt+Shift+S 切换皮肤；Alt+Shift+N 下一个主题">Alt+Shift+S 切换皮肤 · Alt+Shift+N 换主题</span>
+  </div>
+
+      <div id="grid"></div>
+    </section>
+    </div>
+
+    <div id="pageVersion" style="display:none;">
+      <h2>版本管理</h2>
+
+      <section class="card" aria-labelledby="zcodeVerTitle">
+        <h3 id="zcodeVerTitle">ZCode 版本</h3>
+        <div class="ver-main">
+          <span class="ver-label">当前版本</span>
+          <span class="ver-big" id="zcodeVerVal">读取中…</span>
+        </div>
+        <div class="run-actions">
+          <button class="btn" id="zcodeVerCheckBtn">检查更新</button>
+          <span id="zcodeVerResult" style="font-size:12.5px; color:var(--text-dim); flex:1; min-width:160px;"></span>
+        </div>
+        <div class="ver-path">安装路径：<span id="zcodeExePath">—</span></div>
+        <div class="ver-path">开源仓库：<span id="zcodeRepoLink" style="color:var(--accent);">github.com/zai-org/ZCode</span>
+          <button class="ghost" id="copyRepoBtn" style="padding:2px 10px; font-size:11.5px; margin-left:8px;">复制链接</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="appVerTitle">
+        <h3 id="appVerTitle">关于 Zcode+</h3>
+        <div class="ver-main">
+          <span class="ver-label">当前版本</span>
+          <span class="ver-big" id="appVerVal">—</span>
+        </div>
+        <div class="ver-msg">本地工具，不联网上传任何数据；主题与配置保存在本机。新版本发布后会在此处提供更新检查。</div>
+        <div class="run-actions">
+          <button class="btn ghost" id="openLogsBtn" style="padding:5px 14px; font-size:12px;">打开日志目录</button>
+          <span style="font-size:12px; color:var(--text-dim);">诊断日志 diag.log 记录换肤/更新等操作的失败原因</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="menu" role="menu"></div>
+
+  <div id="modalMask">
+    <div id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h4 id="modalTitle">重命名主题</h4>
+      <input id="modalInput" maxlength="40">
+      <div class="row">
+        <button class="btn ghost" id="modalCancel">取消</button>
+        <button class="btn" id="modalOk">保存</button>
+      </div>
+    </div>
+  </div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
