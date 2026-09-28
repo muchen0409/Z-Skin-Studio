@@ -12,6 +12,9 @@
 - 社区下载链路对齐上游客户端（Codex-Dream-Skin）同款防护：仅 `https` + 固定 host `api.dreamskin.cc` + 精确路径白名单，3xx 一律拒绝不跟随；元数据 64KiB 上限、必须携带登记大小与 SHA-256；包体流式下载字节级比对 + SHA-256 校验，任一不符即丢弃；单包 32MiB 硬上限；URL 在主进程构造与校验，渲染层零远程内容（CSP 未放宽）
 - 仅在用户主动点击时发起只读 GET，不上传任何本地数据；不爬取主题库、不做整库同步
 
+### 修复
+- **社区主题元数据字段名**：线上 API 实际为驼峰命名（`packageBytes` / `packageSha256` / `name` / `authorDisplayName`），初版按上游客户端脚本推断为帕斯卡命名，导致真实导入报"缺少必要的完整性字段"；现两种命名都接受。同时依据真实响应补齐上游同款前置检查——`applyCompatible:false`（不兼容标记）与 `reviewedAt` 为空（未过审）均拒绝导入；主题额外记录社区 `license` 字段
+
 ## 2.1.0 (2026-09-26)
 
 按 FEATURE_PROPOSALS.md 推荐组合实施（D1/C1/A4/D2/A1+A2/C3/C2）。
