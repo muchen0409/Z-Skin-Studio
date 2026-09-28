@@ -107,12 +107,13 @@
       if (v.message) $("#zcodeVerResult").textContent = v.message;
     });
   }
-  const pages = { skin: $("#pageSkin"), version: $("#pageVersion") };
+  const pages = { skin: $("#pageSkin"), community: $("#pageCommunity"), version: $("#pageVersion") };
   $$(".nav-item").forEach(b => b.onclick = () => {
     $$(".nav-item").forEach(x => x.classList.remove("active"));
     b.classList.add("active");
     for (const [key, el] of Object.entries(pages)) el.style.display = key === b.dataset.page ? "" : "none";
     if (b.dataset.page === "version") renderVersionPage();
+    if (b.dataset.page === "community") renderCommunityList();
     if (b.dataset.page === "skin") render();
   });
 
@@ -249,7 +250,7 @@
   let uiBusy = false;
   function setUiBusy(b) {
     uiBusy = b;
-    ["#switch", "#enableBtn", "#applyBtn", "#restoreBtn", "#importBtn"].forEach(s => { $(s).disabled = b; });
+    ["#switch", "#enableBtn", "#applyBtn", "#restoreBtn", "#importBtn", "#communityInstallBtn"].forEach(s => { $(s).disabled = b; });
   }
   async function refreshStatus() {
     if (uiBusy) return; // 操作期间不轮询，避免状态回跳
@@ -478,6 +479,87 @@
     } catch (e) {
       setMsg("导入失败：" + e.message, "err");
     } finally { setUiBusy(false); }
+  };
+
+  /* ---------- 社区主题（DreamSkin.cc 固定 API，主进程下载校验） ---------- */
+  function setCommunityStatus(text, cls) {
+    const el = $("#communityStatus");
+    el.style.display = "block";
+    el.textContent = text;
+    el.className = cls || "";
+  }
+
+  function renderCommunityList() {
+    const box = $("#communityList");
+    box.innerHTML = "";
+    const items = (state.themes || []).filter(t => t.community);
+    if (!items.length) {
+      const empty = document.createElement("div");
+      empty.className = "community-empty";
+      empty.textContent = "还没有从社区导入的主题 —— 上面粘贴 ver_ ID 即可开始";
+      box.append(empty);
+      return;
+    }
+    for (const t of items) {
+      const row = document.createElement("div");
+      row.className = "community-row";
+      const info = document.createElement("div");
+      info.className = "cinfo";
+      const nm = document.createElement("span");
+      nm.className = "cname";
+      nm.textContent = t.name;
+      const sub = document.createElement("span");
+      sub.className = "csub";
+      sub.textContent = [t.community.author ? "by " + t.community.author : "", t.community.verId].filter(Boolean).join(" · ");
+      info.append(nm, sub);
+      const view = document.createElement("button");
+      view.className = "btn ghost";
+      view.style.padding = "4px 14px";
+      view.style.fontSize = "12px";
+      view.textContent = "查看";
+      view.onclick = () => {
+        $("#navSkin").click();
+        selectTheme(t.id);
+      };
+      row.append(info, view);
+      box.append(row);
+    }
+  }
+
+  /* 下载阶段进度：主进程 community-progress 事件实时推送 */
+  window.zskin.onCommunityProgress(p => {
+    if (!p) return;
+    if (p.stage === "download" && p.total) {
+      const pct = Math.min(100, Math.round((p.received / p.total) * 100));
+      setCommunityStatus(`下载中 ${pct}%（${(p.received / 1048576).toFixed(1)} / ${(p.total / 1048576).toFixed(1)} MB）`, "");
+    } else if (p.message) {
+      setCommunityStatus(p.message, "");
+    }
+  });
+
+  $("#openGalleryBtn").onclick = async () => { await window.zskin.openCommunityGallery(); };
+  $("#communityInput").onkeydown = e => { if (e.key === "Enter") $("#communityInstallBtn").click(); };
+  $("#communityInstallBtn").onclick = async () => {
+    const ref = $("#communityInput").value.trim();
+    if (!ref) { setCommunityStatus("请先粘贴 ver_ 主题 ID 或链接", "err"); return; }
+    setUiBusy(true);
+    setCommunityStatus("解析链接…", "");
+    try {
+      const r = await window.zskin.installCommunity(ref);
+      if (r && r.ok) {
+        state = r.state;
+        render();
+        renderCommunityList();
+        $("#communityInput").value = "";
+        setCommunityStatus(`已导入「${r.theme.name}」，可在「皮肤管理 · 我的主题」中使用`, "ok");
+      } else {
+        setCommunityStatus((r && r.message) || "导入失败", "err");
+      }
+    } catch (e) {
+      setCommunityStatus("导入失败：" + e.message, "err");
+    } finally {
+      setUiBusy(false);
+    }
   };
 
   /* ---------- 启动 ---------- */

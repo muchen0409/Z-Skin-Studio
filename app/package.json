@@ -1,6 +1,6 @@
 {
   "name": "zcode-skin-launcher",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Zcode+ 管理控制台 — ZCode 换肤启动器",
   "license": "MIT",
   "main": "main.js",

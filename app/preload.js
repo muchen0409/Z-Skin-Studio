@@ -20,4 +20,11 @@ contextBridge.exposeInMainWorld("zskin", {
   openLogs: () => ipcRenderer.invoke("open-logs"),
   setRuntimePrefs: patch => ipcRenderer.invoke("set-runtime-prefs", patch),
   runDiagnostics: () => ipcRenderer.invoke("run-diagnostics"),
+  installCommunity: ref => ipcRenderer.invoke("community-install", { ref }),
+  openCommunityGallery: () => ipcRenderer.invoke("open-community-gallery"),
+  onCommunityProgress: cb => {
+    const l = (_e, p) => cb(p);
+    ipcRenderer.on("community-progress", l);
+    return () => ipcRenderer.removeListener("community-progress", l);
+  },
 });

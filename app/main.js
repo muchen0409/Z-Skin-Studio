@@ -123,6 +123,7 @@ if (gotSingleLock) app.whenReady().then(() => {
   const runtime = require("./src/ipc/runtime");
   runtime.register({ launchZcode });
   require("./src/ipc/themes").register();
+  require("./src/ipc/community").register();
   require("./src/ipc/version").register();
   createWindow();
   createTray();

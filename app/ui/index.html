@@ -23,6 +23,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg>
         皮肤管理
       </button>
+      <button class="nav-item" id="navCommunity" data-page="community">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        社区主题
+      </button>
       <button class="nav-item" id="navVersion" data-page="version">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
         版本管理
@@ -106,69 +110,107 @@
     </div>
   </div>
 
-  <div id="appearanceRow" class="controls" style="margin-top:12px; padding:11px 16px;">
-    <label>ZCode 深浅色</label>
-    <div class="seg" role="group" aria-label="深浅色外观">
-      <button data-app="follow">跟随 ZCode</button>
-      <button data-app="zai-dark">深色</button>
-      <button data-app="zai-light">浅色</button>
-    </div>
-    <span style="font-size:12px; color:var(--text-dim);">在下次启用/应用皮肤时随注入生效，非跟随模式会写入 ZCode 自身的主题偏好</span>
-  </div>
-
-  <div id="rotationRow" class="controls" style="margin-top:12px; padding:11px 16px;">
-    <label>主题轮换</label>
-    <button class="switch" id="rotSwitch" role="switch" aria-checked="false" aria-label="启用主题轮换"></button>
-    <label for="rotInterval">间隔</label>
-    <select id="rotInterval">
-      <option value="1">1 分钟</option>
-      <option value="5">5 分钟</option>
-      <option value="30">30 分钟</option>
-      <option value="60">1 小时</option>
-      <option value="180">3 小时</option>
-      <option value="1440">每天</option>
-    </select>
-    <div class="seg" role="group" aria-label="轮换顺序">
-      <button data-order="sequential">顺序</button>
-      <button data-order="random">随机</button>
-    </div>
-    <span style="font-size:12px; color:var(--text-dim);">在主题卡 ⋯ 菜单把主题加入轮换池（卡上有「轮换」角标）；仅当皮肤已启用时才会轮换</span>
-  </div>
-
-  <div id="filterRow" class="controls" style="margin-top:12px; padding:11px 16px;">
-    <label>背景滤镜</label>
-    <label style="min-width:auto;">模糊</label>
-    <input type="range" id="fBlur" min="0" max="20" value="0" style="flex:0 1 90px; min-width:70px;">
-    <span class="fval" id="fBlurVal">0px</span>
-    <label style="min-width:auto;">亮度</label>
-    <input type="range" id="fBright" min="50" max="150" value="100" style="flex:0 1 90px; min-width:70px;">
-    <span class="fval" id="fBrightVal">100%</span>
-    <label style="min-width:auto;">对比</label>
-    <input type="range" id="fContrast" min="50" max="150" value="100" style="flex:0 1 90px; min-width:70px;">
-    <span class="fval" id="fContrastVal">100%</span>
-    <label style="min-width:auto;">饱和</label>
-    <input type="range" id="fSatur" min="0" max="200" value="100" style="flex:0 1 90px; min-width:70px;">
-    <span class="fval" id="fSaturVal">100%</span>
-    <label>可读性遮罩</label>
-    <div class="seg" role="group" aria-label="可读性遮罩强度">
-      <button data-shade="0">关</button>
-      <button data-shade="1">轻</button>
-      <button data-shade="2">重</button>
-    </div>
-  </div>
-
-  <div id="startupRow" class="controls" style="margin-top:12px; padding:11px 16px;">
-    <label>开机自启</label>
-    <button class="switch" id="autostartSwitch" role="switch" aria-checked="false" aria-label="开机自启（驻留托盘）"></button>
-    <label>启动后自动应用上次主题</label>
-    <button class="switch" id="autoApplySwitch" role="switch" aria-checked="false" aria-label="启动后自动应用上次主题"></button>
-    <label>全局快捷键</label>
-    <button class="switch" id="hotkeySwitch" role="switch" aria-checked="false" aria-label="全局快捷键"></button>
-    <span style="font-size:12px; color:var(--text-dim);" title="Alt+Shift+S 切换皮肤；Alt+Shift+N 下一个主题">Alt+Shift+S 切换皮肤 · Alt+Shift+N 换主题</span>
-  </div>
-
       <div id="grid"></div>
     </section>
+
+    <section class="card" aria-labelledby="lookTitle">
+      <h3 id="lookTitle">外观调节</h3>
+      <div class="card-desc">滤镜与可读性遮罩跟随当前选中的主题，选中卡片即实时生效；深浅色为 ZCode 全局外观。</div>
+      <div id="appearanceRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+        <label>ZCode 深浅色</label>
+        <div class="seg" role="group" aria-label="深浅色外观">
+          <button data-app="follow">跟随 ZCode</button>
+          <button data-app="zai-dark">深色</button>
+          <button data-app="zai-light">浅色</button>
+        </div>
+        <span style="font-size:12px; color:var(--text-dim);">在下次启用/应用皮肤时随注入生效，非跟随模式会写入 ZCode 自身的主题偏好</span>
+      </div>
+
+      <div id="filterRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+        <label>背景滤镜</label>
+        <label style="min-width:auto;">模糊</label>
+        <input type="range" id="fBlur" min="0" max="20" value="0" style="flex:0 1 90px; min-width:70px;">
+        <span class="fval" id="fBlurVal">0px</span>
+        <label style="min-width:auto;">亮度</label>
+        <input type="range" id="fBright" min="50" max="150" value="100" style="flex:0 1 90px; min-width:70px;">
+        <span class="fval" id="fBrightVal">100%</span>
+        <label style="min-width:auto;">对比</label>
+        <input type="range" id="fContrast" min="50" max="150" value="100" style="flex:0 1 90px; min-width:70px;">
+        <span class="fval" id="fContrastVal">100%</span>
+        <label style="min-width:auto;">饱和</label>
+        <input type="range" id="fSatur" min="0" max="200" value="100" style="flex:0 1 90px; min-width:70px;">
+        <span class="fval" id="fSaturVal">100%</span>
+        <label>可读性遮罩</label>
+        <div class="seg" role="group" aria-label="可读性遮罩强度">
+          <button data-shade="0">关</button>
+          <button data-shade="1">轻</button>
+          <button data-shade="2">重</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="autoTitle">
+      <h3 id="autoTitle">自动化</h3>
+      <div class="card-desc">主题轮换、开机自启与全局快捷键等驻留行为。</div>
+      <div id="rotationRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+        <label>主题轮换</label>
+        <button class="switch" id="rotSwitch" role="switch" aria-checked="false" aria-label="启用主题轮换"></button>
+        <label for="rotInterval">间隔</label>
+        <select id="rotInterval">
+          <option value="1">1 分钟</option>
+          <option value="5">5 分钟</option>
+          <option value="30">30 分钟</option>
+          <option value="60">1 小时</option>
+          <option value="180">3 小时</option>
+          <option value="1440">每天</option>
+        </select>
+        <div class="seg" role="group" aria-label="轮换顺序">
+          <button data-order="sequential">顺序</button>
+          <button data-order="random">随机</button>
+        </div>
+        <span style="font-size:12px; color:var(--text-dim);">在主题卡 ⋯ 菜单把主题加入轮换池（卡上有「轮换」角标）；仅当皮肤已启用时才会轮换</span>
+      </div>
+
+      <div id="startupRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+        <label>开机自启</label>
+        <button class="switch" id="autostartSwitch" role="switch" aria-checked="false" aria-label="开机自启（驻留托盘）"></button>
+        <label>启动后自动应用上次主题</label>
+        <button class="switch" id="autoApplySwitch" role="switch" aria-checked="false" aria-label="启动后自动应用上次主题"></button>
+        <label>全局快捷键</label>
+        <button class="switch" id="hotkeySwitch" role="switch" aria-checked="false" aria-label="全局快捷键"></button>
+        <span style="font-size:12px; color:var(--text-dim);" title="Alt+Shift+S 切换皮肤；Alt+Shift+N 下一个主题">Alt+Shift+S 切换皮肤 · Alt+Shift+N 换主题</span>
+      </div>
+    </section>
+    </div>
+
+    <div id="pageCommunity" style="display:none;">
+      <h2>社区主题</h2>
+
+      <section class="card" aria-labelledby="communityTitle">
+        <div class="themes-head">
+          <div class="titles">
+            <h3 id="communityTitle">从 DreamSkin 社区导入</h3>
+            <div class="desc">DreamSkin（dreamskin.cc）是独立的第三方主题社区，与本工具及 ZCode 官方均无关联。只有在你主动操作时，才会以只读方式访问其固定下载接口（校验大小与 SHA-256），不上传任何本地数据；不做全量同步，也不提供主题再分发。</div>
+          </div>
+          <div class="actions">
+            <button class="btn" id="openGalleryBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              打开主题库
+            </button>
+          </div>
+        </div>
+        <div class="community-form">
+          <input id="communityInput" placeholder="粘贴 ver_ 主题 ID、主题页链接或 dreamskin:// 一键换肤链接" spellcheck="false" maxlength="500">
+          <button class="btn" id="communityInstallBtn">下载并导入</button>
+        </div>
+        <div class="community-steps">在主题库点开喜欢的主题 → 复制它的 ver_ ID 或「一键换肤」链接 → 粘贴到这里。导入的主题出现在「皮肤管理 · 我的主题」网格，与本地主题同等使用（轮换 / 滤镜 / 预览全部可用）。</div>
+        <div id="communityStatus" style="display:none;"></div>
+      </section>
+
+      <section class="card" aria-labelledby="communityListTitle">
+        <h3 id="communityListTitle">已导入的社区主题</h3>
+        <div id="communityList"></div>
+      </section>
     </div>
 
     <div id="pageVersion" style="display:none;">
@@ -196,7 +238,7 @@
           <span class="ver-label">当前版本</span>
           <span class="ver-big" id="appVerVal">—</span>
         </div>
-        <div class="ver-msg">本地工具，不联网上传任何数据；主题与配置保存在本机。新版本发布后会在此处提供更新检查。</div>
+        <div class="ver-msg">本地工具，不上传任何数据；主题与配置保存在本机。仅「检查更新」与「社区主题」在你主动操作时只读访问外部接口。</div>
         <div class="run-actions">
           <button class="btn ghost" id="openLogsBtn" style="padding:5px 14px; font-size:12px;">打开日志目录</button>
           <span style="font-size:12px; color:var(--text-dim);">诊断日志 diag.log 记录换肤/更新等操作的失败原因</span>
