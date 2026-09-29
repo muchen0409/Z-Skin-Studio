@@ -4,6 +4,9 @@
 
 按 OPTIMIZATION_PLAN_V2.md 阶段一（测试地基）+ 阶段二（CI/CD）实施。
 
+### 安全
+- 深度安全扫描完成：0 代码发现；依赖审计运行时 0 漏洞，开发链 extract-zip 3 条高危仅打包期触达（官方 zip 来源，非用户输入），豁免理由与遗留动作见 `docs/security-audit-2026-09.md`
+
 ### 新增
 - **单元测试**：`npm test`（Node 内建 test runner，零新依赖，46 条用例，<0.5s）——
   cmpVersion 契约、transformDsCss 容错（@media/@keyframes/url 保护/配平回退）、
