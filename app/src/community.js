@@ -71,6 +71,31 @@ function openSafe(uri, timeoutMs) {
   });
 }
 
+/* 元数据归一化（纯函数，供单测）：线上 API 为驼峰命名（packageBytes/packageSha256/name/
+   authorDisplayName），同时容忍帕斯卡命名，防御 schema 演进；兼容标记与审核状态沿用
+   上游客户端同款前置检查——字段存在但不通过才拒绝，缺失视为旧 schema 放行 */
+function normalizeMeta(raw) {
+  const pick = (a, b) => (raw[a] !== undefined ? raw[a] : raw[b]);
+  const name = (typeof pick("name", "Name") === "string" ? pick("name", "Name") : "").trim();
+  const author = (typeof pick("authorDisplayName", "AuthorDisplayName") === "string" ? pick("authorDisplayName", "AuthorDisplayName") : "").trim();
+  const bytes = Number(pick("packageBytes", "PackageBytes"));
+  const shaRaw = pick("packageSha256", "PackageSha256");
+  const sha = typeof shaRaw === "string" ? shaRaw.toLowerCase() : "";
+  if (raw.applyCompatible === false) throw new Error("该主题被社区标记为与当前客户端不兼容，已拒绝导入");
+  if ("reviewedAt" in raw && !raw.reviewedAt) throw new Error("该主题尚未通过社区审核，已拒绝导入");
+  if (!name || !Number.isInteger(bytes) || bytes <= 0 || bytes > MAX_PACK || !/^[0-9a-f]{64}$/.test(sha)) {
+    throw new Error("主题信息缺少必要的完整性字段（大小/SHA-256），已拒绝导入");
+  }
+  return {
+    name: name.slice(0, 40),
+    author: author.slice(0, 40),
+    version: String(pick("version", "Version") || "").slice(0, 20),
+    license: typeof raw.license === "string" ? raw.license.slice(0, 40) : "",
+    bytes,
+    sha256: sha,
+  };
+}
+
 /* 元数据：Content-Type 必须 JSON、64KiB 双重上限、必须带登记大小与 SHA-256（上游契约字段） */
 async function fetchMeta(verId) {
   const res = await openSafe(`${API_ORIGIN}/v1/themes/${verId}`, META_TIMEOUT);
@@ -90,28 +115,9 @@ async function fetchMeta(verId) {
       let raw;
       try { raw = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
       catch { return reject(new Error("主题信息解析失败")); }
-      /* 线上 API 为驼峰命名（packageBytes/packageSha256/name/authorDisplayName）；
-         同时容忍帕斯卡命名，防御 schema 演进 */
-      const pick = (a, b) => (raw[a] !== undefined ? raw[a] : raw[b]);
-      const name = (typeof pick("name", "Name") === "string" ? pick("name", "Name") : "").trim();
-      const author = (typeof pick("authorDisplayName", "AuthorDisplayName") === "string" ? pick("authorDisplayName", "AuthorDisplayName") : "").trim();
-      const bytes = Number(pick("packageBytes", "PackageBytes"));
-      const shaRaw = pick("packageSha256", "PackageSha256");
-      const sha = typeof shaRaw === "string" ? shaRaw.toLowerCase() : "";
-      /* 上游客户端同款前置检查：兼容标记与审核状态（字段存在但不通过才拒绝，缺失视为旧 schema 放行） */
-      if (raw.applyCompatible === false) return reject(new Error("该主题被社区标记为与当前客户端不兼容，已拒绝导入"));
-      if ("reviewedAt" in raw && !raw.reviewedAt) return reject(new Error("该主题尚未通过社区审核，已拒绝导入"));
-      if (!name || !Number.isInteger(bytes) || bytes <= 0 || bytes > MAX_PACK || !/^[0-9a-f]{64}$/.test(sha)) {
-        return reject(new Error("主题信息缺少必要的完整性字段（大小/SHA-256），已拒绝导入"));
-      }
-      resolve({
-        name: name.slice(0, 40),
-        author: author.slice(0, 40),
-        version: String(pick("version", "Version") || "").slice(0, 20),
-        license: typeof raw.license === "string" ? raw.license.slice(0, 40) : "",
-        bytes,
-        sha256: sha,
-      });
+      let meta;
+      try { meta = normalizeMeta(raw); } catch (e) { return reject(e); }
+      resolve(meta);
     });
   });
 }
@@ -204,4 +210,4 @@ async function installCommunityPack(ref, onStage) {
   }
 }
 
-module.exports = { parseCommunityRef, installCommunityPack, GALLERY_URL };
+module.exports = { parseCommunityRef, installCommunityPack, GALLERY_URL, assertApiUri, normalizeMeta };

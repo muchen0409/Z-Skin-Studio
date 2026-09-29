@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 安装依赖
+        working-directory: app
+        env:
+          # 单测用 fake electron 注入 require.cache，不需要下载 Electron 二进制
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: npm ci --no-audit --no-fund
+
+      - name: 单元测试（含部署一致性检查，无 dist-new 时自动跳过）
+        working-directory: app
+        run: npm test
+
+      - name: 依赖安全审计（仅运行时依赖，高危即失败）
+        working-directory: app
+        run: npm audit --omit=dev --audit-level=high

@@ -195,6 +195,7 @@ function readPackFromZip(zp) {
       const cssEntry = entries.find(e => norm(e.entryName) === prefix + "theme.css");
       pack = {
         id: meta.id,
+        version: String(meta.packageVersion || meta.version || "1"),
         colors: meta.colors && typeof meta.colors === "object" ? meta.colors : undefined,
         css: cssEntry ? cssEntry.getData().toString("utf8") : undefined,
       };
@@ -243,7 +244,8 @@ function backfillPackThemes() {
       if (!pack || pack.id !== t.packId) continue;
       t.dsColors = pack.colors || undefined;
       t.dsCss = pack.css || undefined;
-      t.packVersion = t.packVersion || "1";
+      // 与 importThemePack 同口径：回填真实包版本（此前硬编码 "1"，丢失了版本信息）
+      t.packVersion = t.packVersion || pack.version || "1";
       changed = true;
       break;
     }

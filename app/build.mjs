@@ -36,6 +36,8 @@ const paths = await packager.default({
     /^\/dist($|\/)/,
     /^\/dist-new($|\/)/,
     /^\/build\.mjs$/,
+    /^\/deploy\.mjs$/,
+    /^\/test($|\/)/,
     /^\/_map\.js$/,
     /^\/package-lock\.json$/,
     /^\/\.gitignore$/,

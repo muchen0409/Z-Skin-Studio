@@ -1,5 +1,27 @@
 # Zcode+ Changelog
 
+## Unreleased
+
+按 OPTIMIZATION_PLAN_V2.md 阶段一（测试地基）+ 阶段二（CI/CD）实施。
+
+### 新增
+- **单元测试**：`npm test`（Node 内建 test runner，零新依赖，46 条用例，<0.5s）——
+  cmpVersion 契约、transformDsCss 容错（@media/@keyframes/url 保护/配平回退）、
+  社区元数据归一化与 API 白名单、config 原子写与 .bak 自愈、主题包解析与启动回填；
+  fake electron 经 require.cache 注入，主进程模块在纯 Node 下可测
+- **两条历史 bug 回归测试**：v2.1.0 滤镜 payload 扁平/嵌套双形态落盘；v2.2.0 社区元数据驼峰命名 fixture
+- **部署一致性检查**（test/deploy-check.test.js）：dist-new 被硬链接的根文件与源码逐字节比对，
+  断链（生产跑旧代码）红灯并提示 `npm run deploy`；无 dist-new 时自动跳过
+- **CI**（.github/workflows/ci.yml）：push/PR 跑测试 + 运行时依赖安全审计（audit-level=high）
+- **Release 工作流**（.github/workflows/release.yml）：打 v* tag 自动 Windows 打包并发布 GitHub Release
+
+### 修复
+- 启动回填的 packVersion 此前硬编码为 "1"，丢失真实包版本；现与 importThemePack 同口径取 `packageVersion || version || "1"`
+- 打包 ignore 补充 test/ 与 deploy.mjs，不进产物
+
+### 变更
+- `src/community.js` 元数据归一化抽为纯函数 `normalizeMeta` 并连同 `assertApiUri` 导出（行为不变，供单测）
+
 ## 2.2.0 (2026-09-28)
 
 社区主题接入（DreamSkin.cc 受限只读方式）+ 界面模块拆分。

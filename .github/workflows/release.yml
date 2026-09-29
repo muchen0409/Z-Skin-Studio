@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 安装依赖
+        working-directory: app
+        run: npm ci --no-audit --no-fund
+
+      - name: 打包（build.mjs 需要 electron 缓存 zip，此处不跳过 postinstall）
+        working-directory: app
+        run: npm run dist
+
+      - name: 压缩产物
+        shell: pwsh
+        run: Compress-Archive -Path app/dist-new/ZCodeSkinLauncher-win32-x64 -DestinationPath "ZCodeSkinLauncher-${{ github.ref_name }}-win32-x64.zip"
+
+      - name: 发布 GitHub Release（notes 取自 tag 名自动生成）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --generate-notes ZCodeSkinLauncher-*.zip
