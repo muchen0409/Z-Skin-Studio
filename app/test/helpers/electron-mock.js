@@ -12,7 +12,7 @@ function freshRoot() {
 }
 
 function install() {
-  const ctx = { userDataRoot: freshRoot(), ipcHandlers: {} };
+  const ctx = { userDataRoot: freshRoot(), ipcHandlers: {}, nativeDark: true };
   const fake = {
     app: {
       getPath: name => {
@@ -23,6 +23,9 @@ function install() {
     },
     nativeImage: {
       createFromPath: () => ({ isEmpty: () => true }),
+    },
+    nativeTheme: {
+      get shouldUseDarkColors() { return ctx.nativeDark !== false; },
     },
     ipcMain: {
       handle: (name, fn) => { ctx.ipcHandlers[name] = fn; },

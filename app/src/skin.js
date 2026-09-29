@@ -123,6 +123,11 @@ function dsVarsCss(theme, alpha) {
 function buildSkinCssUncached(theme, light) {
   const url = `file:///${encodeURI(theme.file.replace(/\\/g, "/"))}`;
   const a = Math.min(0.9, Math.max(0.02, theme.alpha));
+  // A3 分区透明度：main 主区 / sidebar 侧栏 / composer 输入栏与弹层 / dialog 弹窗；
+  // 未设置（null）的分区跟随全局 alpha
+  const za = theme.zoneAlpha && typeof theme.zoneAlpha === "object" ? theme.zoneAlpha : {};
+  const zget = k => typeof za[k] === "number" ? Math.min(0.9, Math.max(0.02, za[k])) : a;
+  const aMain = zget("main"), aSide = zget("sidebar"), aComp = zget("composer"), aDlg = zget("dialog");
   const pos = POSITIONS[theme.position] || POSITIONS.center;
   // A1 背景滤镜：blur 时轻微放大抵消边缘羽化发白
   const f = theme.filter || {};
@@ -141,23 +146,23 @@ function buildSkinCssUncached(theme, light) {
   // 两套调色板：深色沿用 ZCode 暗色 token；浅色用 ZCode 浅色 token（背景 #f8f8f8）
   // 浅色只轻微抬高透明度保证文字可读，避免明显白纱
   const P = light ? {
-    main: `rgba(255, 255, 255, ${Math.min(0.9, a + 0.12)})`,
-    section: `rgba(248, 248, 248, ${Math.min(0.9, a + 0.12)})`,
-    sidebar: `rgba(255, 255, 255, ${Math.min(0.9, a + 0.10)})`,
-    surfaceVar: `rgba(255, 255, 255, ${Math.min(0.9, a + 0.16)})`,
-    tagVar: `rgba(255, 255, 255, ${Math.min(0.9, a + 0.14)})`,
-    bgBackground: `rgba(248, 248, 248, ${Math.min(0.9, a + 0.12)})`,
-    card: `rgba(255, 255, 255, ${Math.min(0.9, a + 0.16)})`,
-    dialog: `rgba(255, 255, 255, ${Math.min(0.9, a + 0.18)})`,
+    main: `rgba(255, 255, 255, ${Math.min(0.9, aMain + 0.12)})`,
+    section: `rgba(248, 248, 248, ${Math.min(0.9, aMain + 0.12)})`,
+    sidebar: `rgba(255, 255, 255, ${Math.min(0.9, aSide + 0.10)})`,
+    surfaceVar: `rgba(255, 255, 255, ${Math.min(0.9, aComp + 0.16)})`,
+    tagVar: `rgba(255, 255, 255, ${Math.min(0.9, aComp + 0.14)})`,
+    bgBackground: `rgba(248, 248, 248, ${Math.min(0.9, aMain + 0.12)})`,
+    card: `rgba(255, 255, 255, ${Math.min(0.9, aComp + 0.16)})`,
+    dialog: `rgba(255, 255, 255, ${Math.min(0.9, aDlg + 0.18)})`,
   } : {
-    main: `rgba(43, 43, 43, ${a})`,
-    section: `rgba(22, 22, 22, ${a})`,
-    sidebar: `rgba(30, 30, 30, ${a})`,
-    surfaceVar: `rgba(43, 43, 43, ${Math.min(0.9, a + 0.18)})`,
-    tagVar: `rgba(54, 54, 54, ${Math.min(0.9, a + 0.12)})`,
-    bgBackground: `rgba(22, 22, 22, ${a})`,
-    card: `rgba(30, 30, 30, ${Math.min(0.9, a + 0.12)})`,
-    dialog: `rgba(30, 30, 30, ${Math.min(0.9, a + 0.15)})`,
+    main: `rgba(43, 43, 43, ${aMain})`,
+    section: `rgba(22, 22, 22, ${aMain})`,
+    sidebar: `rgba(30, 30, 30, ${aSide})`,
+    surfaceVar: `rgba(43, 43, 43, ${Math.min(0.9, aComp + 0.18)})`,
+    tagVar: `rgba(54, 54, 54, ${Math.min(0.9, aComp + 0.12)})`,
+    bgBackground: `rgba(22, 22, 22, ${aMain})`,
+    card: `rgba(30, 30, 30, ${Math.min(0.9, aComp + 0.12)})`,
+    dialog: `rgba(30, 30, 30, ${Math.min(0.9, aDlg + 0.15)})`,
   };
   // 包样式可能转换失败 → 视同无包样式，回退通用皮肤（card/dialog 默认规则补上）
   const mappedDs = theme.dsCss ? transformDsCss(theme.dsCss) : null;
@@ -232,6 +237,7 @@ function buildSkinCss(theme, light) {
     theme.dsColors ? crypto.createHash("sha256").update(JSON.stringify(theme.dsColors)).digest("hex").slice(0, 12) : "-",
     theme.shade || 0,
     theme.filter ? JSON.stringify(theme.filter) : "-",
+    theme.zoneAlpha ? JSON.stringify(theme.zoneAlpha) : "-",
   ].join("|");
   if (cssCache.has(fp)) return cssCache.get(fp);
   const css = buildSkinCssUncached(theme, light);
@@ -360,11 +366,26 @@ async function reapplySkin() {
   const s = state.skinSession;
   if (!s || s.ws.readyState !== 1) return;
   try {
-    if (config.get().appearance !== "follow") await evaluate(s.ws, appearanceJs(config.get().appearance));
+    const want = resolveAppearance();
+    if (want) await evaluate(s.ws, appearanceJs(want));
     await evaluate(s.ws, injectJs(buildSkinCss(s.theme, s.light)));
   } catch (e) {
     log("watchdog", "重注入失败: " + e.message);
   }
+}
+
+/* C5：解析外观偏好——follow 不动 ZCode 自身主题；system 取系统深浅色；其余原样。
+   无 electron 环境（单测）时 system 退回深色 */
+function resolveAppearance() {
+  const a = config.get().appearance;
+  if (!a || a === "follow") return null;
+  if (a === "system") {
+    try {
+      const { nativeTheme } = require("electron");
+      return nativeTheme && nativeTheme.shouldUseDarkColors === false ? "zai-light" : "zai-dark";
+    } catch { return "zai-dark"; }
+  }
+  return a;
 }
 
 async function injectSkinPersistent(theme) {
@@ -376,8 +397,7 @@ async function injectSkinPersistent(theme) {
 
   const ws = await connectWs(target.webSocketDebuggerUrl);
   await cdpSend(ws, "Page.enable");
-  const cfg = config.get();
-  const want = cfg.appearance && cfg.appearance !== "follow" ? cfg.appearance : null;
+  const want = resolveAppearance();
   if (want) await evaluate(ws, appearanceJs(want));
   const light = Boolean(await evaluate(ws, `!document.documentElement.classList.contains("dark")`));
   const scriptId = await registerSkin(ws, theme, light);
@@ -437,7 +457,7 @@ async function previewTheme(theme) {
 }
 
 module.exports = {
-  DS_PART_ALIASES, transformDsCss, dsVarsCss, buildSkinCss,
+  DS_PART_ALIASES, transformDsCss, dsVarsCss, buildSkinCss, resolveAppearance,
   injectJs, removeJs, appearanceJs, registerSkin, watchSession, startWatchdog,
   reapplySkin, injectSkinPersistent, teardownSession, switchSkinTheme, previewTheme,
 };

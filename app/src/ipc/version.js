@@ -43,6 +43,9 @@ function register() {
     if (r) log("logs", "打开日志目录失败: " + r);
     return { ok: !r, message: r || undefined };
   });
+
+  /* D3：页内日志查看（尾部 64KB） */
+  ipcMain.handle("get-logs", () => require("../log").readTail());
 }
 
 module.exports = { register };

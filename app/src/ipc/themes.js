@@ -119,6 +119,15 @@ function register() {
       if (typeof fPatch.contrast === "number") f.contrast = Math.min(1.5, Math.max(0.5, fPatch.contrast));
       if (typeof fPatch.saturate === "number") f.saturate = Math.min(2, Math.max(0, fPatch.saturate));
       if ([0, 1, 2].includes(payload.shade)) t.shade = payload.shade;
+      // A3 分区透明度补丁：null 恢复跟随全局，数值钳制 [0.02, 0.9]，其余分区不动
+      if (payload.zoneAlpha && typeof payload.zoneAlpha === "object") {
+        const za = t.zoneAlpha && typeof t.zoneAlpha === "object" ? t.zoneAlpha : (t.zoneAlpha = {});
+        for (const z of ["main", "sidebar", "composer", "dialog"]) {
+          const v = payload.zoneAlpha[z];
+          if (v === null) za[z] = null;
+          else if (typeof v === "number") za[z] = Math.min(0.9, Math.max(0.02, v));
+        }
+      }
       config.saveConfig();
       // 调参即时生效：会话中的主题若就是本主题（预览态或已应用），防抖后重新注入新参数
       const { state } = require("../state");

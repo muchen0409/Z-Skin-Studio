@@ -59,7 +59,7 @@ Electron 桌面应用（`app/`，产品名 ZCodeSkinLauncher）：管理 ZCode �
 | `README.md` | 用户视角：功能/用法/安全声明 |
 | `app/CHANGELOG.md` | 版本事实（每个功能 PR 必带条目） |
 | `FEATURE_PROPOSALS.md` | 提案池（标注已实施/已否决） |
-| `OPTIMIZATION_PLAN*.md` | 历史计划（完成后归档只读） |
+| `OPTIMIZATION_PLAN.md` | 旧版优化计划（v2.0.0 已全量落地，归档只读） |
 | `docs/adr/` | 架构决策记录（改这些决策前先读） |
 | `docs/security-audit-*.md` | 安全扫描与依赖审计记录 |
 

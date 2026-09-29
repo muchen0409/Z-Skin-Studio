@@ -137,7 +137,7 @@ function register(deps) {
   ipcMain.handle("get-status", async () => ({ ...(await probeStatus()), appliedId: config.get().appliedId }));
 
   ipcMain.handle("set-appearance", (_e, value) => {
-    if (["follow", "zai-dark", "zai-light"].includes(value)) { config.get().appearance = value; config.saveConfig(); }
+    if (["follow", "zai-dark", "zai-light", "system"].includes(value)) { config.get().appearance = value; config.saveConfig(); }
     return config.publicState();
   });
 

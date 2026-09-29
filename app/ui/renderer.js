@@ -126,13 +126,33 @@
   function renderDraftParams() {
     const t = draftTheme();
     const box = $("#draftParams");
-    if (!t) { box.style.display = "none"; renderFilterRow(null); return; }
+    if (!t) { box.style.display = "none"; renderFilterRow(null); renderZoneRow(null); return; }
     box.style.display = "flex";
     $("#alpha").value = Math.round(t.alpha * 100);
     $("#alphaVal").textContent = fmtAlpha(Math.round(t.alpha * 100));
     // 只收窄到草稿参数区，避免清掉深浅色/轮换顺序的分段高亮
     $$("#draftParams .seg button").forEach(b => b.classList.toggle("on", b.dataset.pos === t.position));
     renderFilterRow(t);
+    renderZoneRow(t);
+  }
+
+  /* A3 分区透明度：null = 跟随全局，显示上以「%·全局」标注 */
+  const ZONES = [
+    ["main", "#zMain", "#zMainVal"],
+    ["sidebar", "#zSidebar", "#zSidebarVal"],
+    ["composer", "#zComposer", "#zComposerVal"],
+    ["dialog", "#zDialog", "#zDialogVal"],
+  ];
+  function renderZoneRow(t) {
+    const row = $("#zoneRow");
+    if (!t) { row.style.display = "none"; return; }
+    row.style.display = "flex";
+    const g = Math.round((t.alpha || 0.1) * 100);
+    for (const [key, input, val] of ZONES) {
+      const zv = t.zoneAlpha && typeof t.zoneAlpha[key] === "number" ? Math.round(t.zoneAlpha[key] * 100) : null;
+      $(input).value = zv ?? g;
+      $(val).textContent = (zv ?? g) + "%" + (zv === null ? "·全局" : "");
+    }
   }
 
   /* A1/A2：滤镜滑块与遮罩档位跟随草稿主题 */
@@ -261,10 +281,13 @@
     skinned: ["ZCode 已连接 · 皮肤已启用", "ok"],
     busy: ["操作执行中…", "warn"],
   };
-  let uiBusy = false;
+  let uiBusyDepth = 0;
+  /* 计数式：嵌套调用（如菜单导出包住外层操作）不会提前解锁 */
   function setUiBusy(b) {
-    uiBusy = b;
-    ["#switch", "#enableBtn", "#applyBtn", "#restoreBtn", "#importBtn", "#communityInstallBtn"].forEach(s => { $(s).disabled = b; });
+    uiBusyDepth = Math.max(0, uiBusyDepth + (b ? 1 : -1));
+    const busy = uiBusyDepth > 0;
+    uiBusy = busy;
+    ["#switch", "#enableBtn", "#applyBtn", "#restoreBtn", "#importBtn", "#communityInstallBtn", "#backupExportBtn", "#backupRestoreBtn"].forEach(s => { const el = $(s); if (el) el.disabled = busy; });
   }
   async function refreshStatus() {
     if (uiBusy) return; // 操作期间不轮询，避免状态回跳
@@ -404,6 +427,24 @@
     renderFilterRow(draftTheme());
   });
 
+  /* A3 分区透明度：拖动落盘单分区，重置按钮全部回到跟随全局 */
+  for (const [key, input, val] of ZONES) {
+    $(input).oninput = e => { $(val).textContent = e.target.value + "%"; };
+    $(input).onchange = async e => {
+      const t = draftTheme();
+      if (!t) return;
+      state = await window.zskin.setThemeParams(t.id, undefined, undefined, { zoneAlpha: { [key]: Number(e.target.value) / 100 } });
+      renderZoneRow(draftTheme());
+    };
+  }
+  $("#zoneResetBtn").onclick = async () => {
+    const t = draftTheme();
+    if (!t) return;
+    state = await window.zskin.setThemeParams(t.id, undefined, undefined, { zoneAlpha: { main: null, sidebar: null, composer: null, dialog: null } });
+    renderZoneRow(draftTheme());
+    setMsg("分区透明度已全部恢复为跟随全局", "ok");
+  };
+
   /* C1/C3 启动偏好 */
   $("#autostartSwitch").onclick = async () => {
     state = await window.zskin.setRuntimePrefs({ autostart: !state.autostart });
@@ -480,6 +521,35 @@
     } catch {}
   };
   $("#openLogsBtn").onclick = async () => { await window.zskin.openLogs(); };
+
+  /* D3 页内日志查看：尾部 64KB + 关键字过滤 + 复制 */
+  async function loadLogs() {
+    const r = await window.zskin.getLogs();
+    const kw = $("#logFilter").value.trim();
+    let text = (r && r.text) || "";
+    if (kw) text = text.split("\n").filter(l => l.includes(kw)).join("\n");
+    $("#logView").textContent = text.trim() ? text : (kw ? "(无匹配行)" : "(日志为空)");
+  }
+  $("#logViewBtn").onclick = async () => {
+    const show = $("#logView").style.display !== "block";
+    $("#logViewBtn").textContent = show ? "收起日志" : "查看日志";
+    if (show) {
+      $("#logFilter").style.display = "";
+      $("#logRefreshBtn").style.display = "";
+      $("#logCopyBtn").style.display = "";
+      await loadLogs();
+    }
+    $("#logView").style.display = show ? "block" : "none";
+  };
+  $("#logRefreshBtn").onclick = () => loadLogs();
+  $("#logFilter").onkeydown = e => { if (e.key === "Enter") loadLogs(); };
+  $("#logCopyBtn").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText($("#logView").textContent);
+      $("#logCopyBtn").textContent = "已复制";
+      setTimeout(() => { $("#logCopyBtn").textContent = "复制"; }, 1500);
+    } catch {}
+  };
 
   /* B2/D4 备份与迁移（版本管理页） */
   $("#backupExportBtn").onclick = async () => {

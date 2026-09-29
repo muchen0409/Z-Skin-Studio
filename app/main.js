@@ -16,9 +16,11 @@ const gotSingleLock = app.requestSingleInstanceLock();
 if (!gotSingleLock) {
   app.quit();
 } else {
-  app.on("second-instance", () => {
+  // C7：已驻留时再次带 CLI 参数启动，由驻留实例接管执行（窗口顺带唤出）
+  app.on("second-instance", (_e, argv) => {
     log("app", "second-instance fired, win=" + !!state.win);
     if (state.win) { if (state.win.isMinimized()) state.win.restore(); state.win.show(); state.win.focus(); }
+    require("./src/cli").handleIfRequested(argv).catch(e => log("cli", "CLI 执行失败: " + e.message));
   });
 }
 
@@ -110,7 +112,7 @@ function createTray() {
   state.tray.on("double-click", () => { if (state.win) { state.win.show(); state.win.focus(); } });
 }
 
-if (gotSingleLock) app.whenReady().then(() => {
+if (gotSingleLock) app.whenReady().then(async () => {
   initLog(app.getPath("userData"));
   config.loadConfig();
   // C1：把已保存的自启偏好同步到系统登录项（打包版才生效；开发模式仅记录）
@@ -119,6 +121,14 @@ if (gotSingleLock) app.whenReady().then(() => {
       app.setLoginItemSettings({ openAtLogin: config.get().autostart, path: process.execPath, args: ["--hidden"] });
     }
   } catch (e) { log("autostart", "登录项设置失败: " + e.message); }
+  // C7：命令行模式（--apply/--restore/--status）不弹窗口，执行完退出
+  const cliArgs = require("./src/cli").parseCliArgs(process.argv);
+  if (cliArgs.command) {
+    try { await require("./src/cli").handleCliArgs(cliArgs); }
+    catch (e) { log("cli", "CLI 执行失败: " + e.message); }
+    app.quit();
+    return;
+  }
   // IPC 注册（runtime 依赖注入 launchZcode，避免模块反向依赖入口文件）
   const runtime = require("./src/ipc/runtime");
   runtime.register({ launchZcode });
@@ -130,6 +140,15 @@ if (gotSingleLock) app.whenReady().then(() => {
   createTray();
   require("./src/rotation").startRotationTimer();
   require("./src/hotkeys").applyHotkeys();
+  // C5：系统深浅色变化时，「跟随系统」模式下重注入外观偏好与皮肤
+  try {
+    const { nativeTheme } = require("electron");
+    nativeTheme.on("updated", () => {
+      try {
+        if (config.get().appearance === "system" && state.skinSession) require("./src/skin").reapplySkin();
+      } catch (e) { log("appearance", "系统深浅色联动失败: " + e.message); }
+    });
+  } catch (e) { log("appearance", "nativeTheme 监听失败: " + e.message); }
   // 主题包回填与缩略图/accent 补齐：窗口显示之后异步执行，不阻塞首屏
   setImmediate(() => {
     const packs = require("./src/theme-pack");

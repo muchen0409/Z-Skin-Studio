@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld("zskin", {
   enableSkin: targetId => ipcRenderer.invoke("enable-skin", targetId),
   disableSkin: () => ipcRenderer.invoke("restore"),
   openLogs: () => ipcRenderer.invoke("open-logs"),
+  getLogs: () => ipcRenderer.invoke("get-logs"),
   setRuntimePrefs: patch => ipcRenderer.invoke("set-runtime-prefs", patch),
   runDiagnostics: () => ipcRenderer.invoke("run-diagnostics"),
   installCommunity: ref => ipcRenderer.invoke("community-install", { ref }),

@@ -82,10 +82,16 @@ function loadConfig() {
     if (typeof f.contrast !== "number") f.contrast = 1;
     if (typeof f.saturate !== "number") f.saturate = 1;
     if (![0, 1, 2].includes(t.shade)) t.shade = 0;
+    // A3 分区透明度：null = 跟随全局 alpha；数值钳制在 [0.02, 0.9]
+    if (!t.zoneAlpha || typeof t.zoneAlpha !== "object") t.zoneAlpha = {};
+    for (const z of ["main", "sidebar", "composer", "dialog"]) {
+      const v = t.zoneAlpha[z];
+      t.zoneAlpha[z] = typeof v === "number" && v >= 0.02 && v <= 0.9 ? v : null;
+    }
   }
   if (!config.themes.some(t => t.id === config.draftId)) config.draftId = config.themes[0]?.id || null;
   if (!config.themes.some(t => t.id === config.appliedId)) config.appliedId = null;
-  if (!["follow", "zai-dark", "zai-light"].includes(config.appearance)) config.appearance = "follow";
+  if (!["follow", "zai-dark", "zai-light", "system"].includes(config.appearance)) config.appearance = "follow";
   // 主题轮换配置
   if (!config.rotation || typeof config.rotation !== "object") config.rotation = {};
   const rot = config.rotation;

@@ -120,6 +120,7 @@
         <label>ZCode 深浅色</label>
         <div class="seg" role="group" aria-label="深浅色外观">
           <button data-app="follow">跟随 ZCode</button>
+          <button data-app="system">跟随系统</button>
           <button data-app="zai-dark">深色</button>
           <button data-app="zai-light">浅色</button>
         </div>
@@ -146,6 +147,23 @@
           <button data-shade="1">轻</button>
           <button data-shade="2">重</button>
         </div>
+      </div>
+
+      <div id="zoneRow" class="controls" style="margin-top:12px; padding:11px 16px;">
+        <label>分区透明度</label>
+        <label style="min-width:auto;">主区</label>
+        <input type="range" id="zMain" min="2" max="90" style="flex:0 1 80px; min-width:64px;">
+        <span class="fval" id="zMainVal"></span>
+        <label style="min-width:auto;">侧栏</label>
+        <input type="range" id="zSidebar" min="2" max="90" style="flex:0 1 80px; min-width:64px;">
+        <span class="fval" id="zSidebarVal"></span>
+        <label style="min-width:auto;">输入栏</label>
+        <input type="range" id="zComposer" min="2" max="90" style="flex:0 1 80px; min-width:64px;">
+        <span class="fval" id="zComposerVal"></span>
+        <label style="min-width:auto;">弹窗</label>
+        <input type="range" id="zDialog" min="2" max="90" style="flex:0 1 80px; min-width:64px;">
+        <span class="fval" id="zDialogVal"></span>
+        <button class="link-btn" id="zoneResetBtn" style="font-size:11.5px;">全部跟随全局</button>
       </div>
     </section>
 
@@ -240,9 +258,13 @@
         </div>
         <div class="ver-msg">本地工具，不上传任何数据；主题与配置保存在本机。仅「检查更新」与「社区主题」在你主动操作时只读访问外部接口。</div>
         <div class="run-actions">
+          <button class="btn ghost" id="logViewBtn" style="padding:5px 14px; font-size:12px;">查看日志</button>
+          <input id="logFilter" placeholder="过滤关键字…" spellcheck="false" style="display:none; flex:0 1 140px; min-width:100px;">
+          <button class="btn ghost" id="logRefreshBtn" style="display:none; padding:5px 14px; font-size:12px;">刷新</button>
+          <button class="btn ghost" id="logCopyBtn" style="display:none; padding:5px 14px; font-size:12px;">复制</button>
           <button class="btn ghost" id="openLogsBtn" style="padding:5px 14px; font-size:12px;">打开日志目录</button>
-          <span style="font-size:12px; color:var(--text-dim);">诊断日志 diag.log 记录换肤/更新等操作的失败原因</span>
         </div>
+        <pre id="logView"></pre>
       </section>
 
       <section class="card" aria-labelledby="backupTitle">
