@@ -6,6 +6,7 @@
   const ICONS = {
     rename: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',
     trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>',
+    download: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>',
   };
 
   function applyAccent(rgb) {
@@ -204,11 +205,24 @@
       state = await window.zskin.toggleRotationTheme(t.id);
       render();
     };
+    const exp = document.createElement("button");
+    exp.innerHTML = ICONS.download + "导出主题包";
+    exp.onclick = async () => {
+      closeMenu();
+      setUiBusy(true);
+      try {
+        const r = await window.zskin.exportTheme(t.id);
+        if (r && r.ok) setMsg(`已导出「${t.name}」主题包 → ${r.path}`, "ok");
+        else if (r && !r.canceled && r.message) setMsg("导出失败：" + r.message, "err");
+      } catch (e) {
+        setMsg("导出失败：" + e.message, "err");
+      } finally { setUiBusy(false); }
+    };
     const del = document.createElement("button");
     del.className = "danger";
     del.innerHTML = ICONS.trash + "删除";
     del.onclick = async () => { closeMenu(); state = await window.zskin.removeTheme(t.id); render(); };
-    m.append(rename, rot, del);
+    m.append(rename, rot, exp, del);
     m.classList.add("open");
     const r = anchor.getBoundingClientRect();
     m.style.left = Math.min(r.left, window.innerWidth - 150) + "px";
@@ -466,6 +480,40 @@
     } catch {}
   };
   $("#openLogsBtn").onclick = async () => { await window.zskin.openLogs(); };
+
+  /* B2/D4 备份与迁移（版本管理页） */
+  $("#backupExportBtn").onclick = async () => {
+    const btn = $("#backupExportBtn");
+    btn.disabled = true;
+    $("#backupMsg").textContent = "正在打包主题库…";
+    try {
+      const r = await window.zskin.backupExport();
+      $("#backupMsg").textContent = r.ok ? "已导出：" + r.path : (r.canceled ? "" : "导出失败：" + r.message);
+    } catch (e) {
+      $("#backupMsg").textContent = "导出失败：" + e.message;
+    } finally { btn.disabled = false; }
+  };
+  $("#backupRestoreBtn").onclick = async () => {
+    if (!confirm("导入备份将整体替换当前的主题库与配置（替换前当前配置会自动留档）。继续吗？")) return;
+    const btn = $("#backupRestoreBtn");
+    btn.disabled = true;
+    $("#backupMsg").textContent = "正在从备份恢复…";
+    try {
+      const r = await window.zskin.backupRestore();
+      if (r.ok) {
+        state = r.state;
+        render();
+        applyAccent(await window.zskin.getAccent(state.draftId));
+        $("#backupMsg").textContent = "已从备份恢复主题库与配置";
+      } else if (!r.canceled) {
+        $("#backupMsg").textContent = "恢复失败：" + r.message;
+      } else {
+        $("#backupMsg").textContent = "";
+      }
+    } catch (e) {
+      $("#backupMsg").textContent = "恢复失败：" + e.message;
+    } finally { btn.disabled = false; }
+  };
 
   $("#importBtn").onclick = async () => {
     setUiBusy(true);

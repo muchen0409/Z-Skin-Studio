@@ -1,11 +1,49 @@
 # Zcode+ Changelog
 
-## Unreleased
+## 2.3.0 (2026-09-29)
 
-按 OPTIMIZATION_PLAN_V2.md 阶段一（测试地基）+ 阶段二（CI/CD）实施。
+测试地基 + CI/CD + 安全审计（阶段一/二/三）与主题导出、备份迁移（阶段四第一项）+ 决策文档化。
+
+### 新功能
+- **B1 导出主题包**：主题卡 ⋯ 菜单新增「导出主题包」，把任意主题重建为 DreamSkin 兼容 zip
+  （theme.json + theme.css? + 背景图）——包来源主题还原 dsColors/dsCss/packVersion，
+  本地图片主题从导入时缓存的 accent 生成 accent token、位置映射回 art.focusX；
+  导出的包可直接再导入（round-trip 有测试固化）
+- **B2/D4 备份与迁移**（版本管理页新卡）：「导出备份」把主题库与全部设置打包成单个 zip
+  （config.json + meta.json + backgrounds/ 逐文件镜像）；「导入备份」整包恢复——
+  路径按 basename 重写到当次机器的主题库（支持换机/重装），恢复前当前配置自动留档
+  `config.json.pre-restore`，恢复后走既有 loadConfig 校验（缺文件主题过滤、失效 id 归零）
+
+### 测试与工程化
+- **单元测试**：`npm test`（Node 内建 test runner，零新依赖，60+ 用例，<1s；CI 同款）——
+  cmpVersion、transformDsCss、社区元数据/白名单、config 原子写与 .bak 自愈、主题包解析与回填、
+  导出/备份 round-trip；fake electron 经 require.cache 注入，主进程模块纯 Node 可测
+- **两条历史 bug 回归**：v2.1.0 滤镜 payload 扁平/嵌套双形态；v2.2.0 社区元数据驼峰命名 fixture
+- **部署一致性检查**：dist-new 被硬链接的根文件与源码逐字节比对，断链红灯（首跑即抓到真实断链）
+- **CI**（.github/workflows/ci.yml）：push/PR 跑测试 + 运行时依赖审计（audit-level=high）；
+  **Release 工作流**（release.yml）：打 v* tag 自动 Windows 打包发 GitHub Release
 
 ### 安全
-- 深度安全扫描完成：0 代码发现；依赖审计运行时 0 漏洞，开发链 extract-zip 3 条高危仅打包期触达（官方 zip 来源，非用户输入），豁免理由与遗留动作见 `docs/security-audit-2026-09.md`
+- 深度安全扫描完成：0 代码发现；依赖审计运行时 0 漏洞，开发链 extract-zip 3 条高危仅打包期
+  触达（官方 zip 来源，非用户输入），豁免理由见 `docs/security-audit-2026-09.md`
+- 备份恢复安全面：zip 条目视为不可信——相对路径白名单（isSafeBgRel 拒绝 ".." 段）+
+  resolve 边界断言双防线；meta.json 来源校验；单文件 100MB 上限
+
+### 修复
+- 启动回填的 packVersion 此前硬编码为 "1"，丢失真实包版本；现与 importThemePack 同口径
+- 打包 ignore 补充 test/ 与 deploy.mjs，不进产物
+
+### 文档
+- **docs/adr/ 6 篇架构决策记录**：PowerShell 启动、junction+硬链接部署、gpu-off.flag、
+  CDP IIFE 隔离、社区受限只读模型、选择器后代匹配（原只存在于本机记忆的决策显式化）
+- **AGENTS.md**：AI 协作须知（红线、命令、8 条已验证的坑、冒烟测试技巧、文档地图）
+
+### 变更
+- `src/config.js` 增加只读 `getConfigFile()`；`src/community.js` 元数据归一化抽为纯函数
+  `normalizeMeta` 并连同 `assertApiUri` 导出（行为不变，供单测）
+- 主题卡 ⋯ 菜单新增「导出主题包」入口；preload 暴露 exportTheme/backupExport/backupRestore
+
+## 2.2.0 (2026-09-28)
 
 ### 新增
 - **单元测试**：`npm test`（Node 内建 test runner，零新依赖，46 条用例，<0.5s）——

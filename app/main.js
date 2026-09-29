@@ -125,6 +125,7 @@ if (gotSingleLock) app.whenReady().then(() => {
   require("./src/ipc/themes").register();
   require("./src/ipc/community").register();
   require("./src/ipc/version").register();
+  require("./src/ipc/export").register();
   createWindow();
   createTray();
   require("./src/rotation").startRotationTimer();

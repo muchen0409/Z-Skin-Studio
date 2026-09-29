@@ -22,6 +22,9 @@ contextBridge.exposeInMainWorld("zskin", {
   runDiagnostics: () => ipcRenderer.invoke("run-diagnostics"),
   installCommunity: ref => ipcRenderer.invoke("community-install", { ref }),
   openCommunityGallery: () => ipcRenderer.invoke("open-community-gallery"),
+  exportTheme: id => ipcRenderer.invoke("export-theme", id),
+  backupExport: () => ipcRenderer.invoke("backup-export"),
+  backupRestore: () => ipcRenderer.invoke("backup-restore"),
   onCommunityProgress: cb => {
     const l = (_e, p) => cb(p);
     ipcRenderer.on("community-progress", l);

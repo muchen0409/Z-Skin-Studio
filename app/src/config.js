@@ -18,6 +18,8 @@ let config;     // { themes:[...], draftId, appliedId, zcodeExe, appearance, rot
 
 function getBgDir() { return bgDir; }
 function get() { return config; }
+/* 备份恢复等场景需要 config.json 的落盘位置（loadConfig 后有效） */
+function getConfigFile() { return configFile; }
 
 function findZcodeExe() {
   for (const p of EXE_CANDIDATES) { try { if (fs.existsSync(p)) return p; } catch {} }
@@ -118,4 +120,4 @@ function publicState() {
   };
 }
 
-module.exports = { loadConfig, saveConfig, findZcodeExe, publicState, get, getBgDir };
+module.exports = { loadConfig, saveConfig, findZcodeExe, publicState, get, getBgDir, getConfigFile };
