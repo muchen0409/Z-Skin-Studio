@@ -25,11 +25,16 @@ if (!gotSingleLock) {
 }
 
 function createWindow() {
+  // 记忆上次窗口大小（位置交给系统，避免换显示器后跑到屏幕外）
+  const saved = config.get().winBounds && typeof config.get().winBounds === "object" ? config.get().winBounds : {};
   state.win = new BrowserWindow({
-    width: 1040,
-    height: 720,
+    width: typeof saved.width === "number" ? saved.width : 1040,
+    height: typeof saved.height === "number" ? saved.height : 720,
+    minWidth: 860,
+    minHeight: 560,
     autoHideMenuBar: true,
     backgroundColor: "#141210",
+    icon: path.join(__dirname, "tray.png"),
     show: false,
     webPreferences: {
       contextIsolation: true,
@@ -41,8 +46,12 @@ function createWindow() {
   state.win.loadFile(path.join(__dirname, "ui", "index.html"));
   // C1：--hidden（开机自启路径）时不弹窗口，驻留托盘
   state.win.once("ready-to-show", () => { if (!process.argv.includes("--hidden")) state.win.show(); });
-  // 关窗 = 隐藏到托盘，程序驻留（托盘菜单可真正退出）
+  // 关窗 = 隐藏到托盘，程序驻留（托盘菜单可真正退出）；隐藏前顺手记忆窗口尺寸
   state.win.on("close", e => {
+    try {
+      const b = state.win.getBounds();
+      if (b.width >= 860 && b.height >= 560) { config.get().winBounds = { width: b.width, height: b.height }; config.saveConfig(); }
+    } catch {}
     if (!app.isQuitting) {
       e.preventDefault();
       state.win.hide();

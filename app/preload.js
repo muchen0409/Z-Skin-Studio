@@ -1,9 +1,11 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
 contextBridge.exposeInMainWorld("zskin", {
   getState: () => ipcRenderer.invoke("get-state"),
   getStatus: () => ipcRenderer.invoke("get-status"),
   importThemes: () => ipcRenderer.invoke("import-themes"),
+  importPaths: paths => ipcRenderer.invoke("import-paths", paths),
+  filePath: file => { try { return webUtils.getPathForFile(file); } catch { return ""; } },
   renameTheme: (id, name) => ipcRenderer.invoke("rename-theme", { id, name }),
   removeTheme: id => ipcRenderer.invoke("remove-theme", id),
   setDraft: id => ipcRenderer.invoke("set-draft", id),

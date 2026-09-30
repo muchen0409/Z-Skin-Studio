@@ -358,3 +358,34 @@
   }
   #logFilter::placeholder { color: var(--text-dim); }
   #logFilter:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+
+  /* 通用确认模态框（与重命名模态同风格） */
+  #confirmMask {
+    position: fixed; inset: 0; z-index: 95;
+    background: rgba(0,0,0,.5); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center;
+  }
+  #confirmMask.open { display: flex; }
+  #confirmBox {
+    width: 360px; background: #241f19; border: 1px solid var(--border);
+    border-radius: 13px; padding: 20px;
+    box-shadow: 0 16px 48px rgba(0,0,0,.6);
+  }
+  #confirmBox h4 { font-size: 15px; margin-bottom: 9px; }
+  #confirmBox p { font-size: 12.5px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.6; overflow-wrap: anywhere; }
+  #confirmBox .row { display: flex; justify-content: flex-end; gap: 9px; }
+  .btn.danger { background: linear-gradient(135deg, #c96a5a, #a04a3c); color: #fff; }
+  .btn.danger:hover { filter: brightness(1.1); }
+
+  /* 忙碌 spinner：长操作按钮内的旋转指示 */
+  .btn.loading { pointer-events: none; }
+  .btn.loading::after {
+    content: ""; width: 12px; height: 12px; flex: none;
+    border: 2px solid currentColor; border-top-color: transparent;
+    border-radius: 50%; animation: btn-spin .7s linear infinite;
+  }
+  @keyframes btn-spin { to { transform: rotate(360deg); } }
+
+  /* 拖拽导入高亮与空状态 */
+  #grid.drag-over { outline: 2px dashed var(--accent); outline-offset: 5px; border-radius: 14px; }
+  #emptyState { display: grid; gap: 14px; justify-items: center; }

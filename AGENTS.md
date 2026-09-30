@@ -45,6 +45,9 @@ Electron 桌面应用（`app/`，产品名 ZCodeSkinLauncher）：管理 ZCode �
 8. **测试基建**：`test/helpers/electron-mock.js` 用 require.cache 注入 fake electron
    （必须在 require 任何 src/ 模块前调用）；node --test 用无参数默认发现（目录参数在
    Windows 会误当入口模块）。
+9. **Electron 32+ 移除了 `File.path`**：拖拽导入取文件路径要用 preload 里的
+   `webUtils.getPathForFile(file)`（contextBridge 官方模式，见 preload.js `filePath`）。
+   主进程 ESM 入口（.mjs）没有 `require`——一次性工具脚本用 .cjs（见 make-ico.cjs）。
 
 ## 单实例锁与冒烟测试
 

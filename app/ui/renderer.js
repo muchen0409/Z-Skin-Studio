@@ -18,7 +18,7 @@
     root.setProperty("--accent-deep", `rgb(${Math.round(r*.72)},${Math.round(g*.72)},${Math.round(b*.72)})`);
   }
 
-  function fmtAlpha(v) { return "." + String(v).padStart(2, "0"); }
+  function fmtAlpha(v) { return Math.round(v) + "%"; }
 
   /* ---------- 主题网格（按 id 增量更新，不再整屏重建 DOM） ---------- */
   function buildCard() {
@@ -75,7 +75,13 @@
       if (!empty) {
         empty = document.createElement("div");
         empty.id = "emptyState";
-        empty.textContent = "还没有主题 —— 点击右上角「导入主题」，把任意图片变成 ZCode 的氛围背景";
+        const tip = document.createElement("div");
+        tip.textContent = "还没有主题 —— 把图片或主题包拖进窗口，或点击下面的按钮导入";
+        const go = document.createElement("button");
+        go.className = "btn ghost";
+        go.textContent = "导入主题";
+        go.onclick = () => $("#importBtn").click();
+        empty.append(tip, go);
         grid.append(empty);
       }
       grid.querySelectorAll(".theme-card").forEach(c => c.remove());
@@ -241,7 +247,13 @@
     const del = document.createElement("button");
     del.className = "danger";
     del.innerHTML = ICONS.trash + "删除";
-    del.onclick = async () => { closeMenu(); state = await window.zskin.removeTheme(t.id); render(); };
+    del.onclick = async () => {
+      closeMenu();
+      // 删除会永久移除背景图文件，必须显式确认
+      if (!(await askConfirm(`删除「${t.name}」？`, "主题的背景图文件将被永久删除，此操作无法撤销。", "删除", true))) return;
+      state = await window.zskin.removeTheme(t.id);
+      render();
+    };
     m.append(rename, rot, exp, del);
     m.classList.add("open");
     const r = anchor.getBoundingClientRect();
@@ -272,6 +284,39 @@
   };
   $("#modalInput").onkeydown = e => { if (e.key === "Enter") $("#modalOk").click(); };
   $("#modalMask").onclick = e => { if (e.target === $("#modalMask")) closeModal(); };
+
+  /* ---------- 通用确认模态框（危险操作统一走这里，替代原生 confirm） ----------
+     返回 Promise<boolean>；danger=true 时确认键为红色警示样式 */
+  function askConfirm(title, text, okLabel = "确认", danger = false) {
+    return new Promise(resolve => {
+      const mask = $("#confirmMask"), ok = $("#confirmOk");
+      $("#confirmTitle").textContent = title;
+      $("#confirmText").textContent = text;
+      ok.textContent = okLabel;
+      ok.classList.toggle("danger", danger);
+      mask.classList.add("open");
+      ok.focus();
+      const done = v => {
+        mask.classList.remove("open");
+        ok.removeEventListener("click", onOk);
+        $("#confirmCancel").removeEventListener("click", onCancel);
+        mask.removeEventListener("click", onMask);
+        document.removeEventListener("keydown", onKey, true);
+        resolve(v);
+      };
+      const onOk = () => done(true);
+      const onCancel = () => done(false);
+      const onMask = e => { if (e.target === mask) done(false); };
+      const onKey = e => {
+        if (e.key === "Escape") done(false);
+        else if (e.key === "Enter") { e.stopPropagation(); done(true); }
+      };
+      ok.addEventListener("click", onOk);
+      $("#confirmCancel").addEventListener("click", onCancel);
+      mask.addEventListener("click", onMask);
+      document.addEventListener("keydown", onKey, true);
+    });
+  }
 
   /* ---------- 运行状态 ---------- */
   const STATUS_TEXT = {
@@ -337,6 +382,7 @@
 
   async function busyEnable(btn) {
     setUiBusy(true);
+    if (btn) btn.classList.add("loading");
     setMsg("正在启动 ZCode 并注入主题…");
     try {
       const r = await window.zskin.enableSkin();
@@ -344,6 +390,7 @@
     } catch (e) {
       setMsg("启用失败：" + e.message, "err");
     } finally {
+      if (btn) btn.classList.remove("loading");
       setUiBusy(false);
       state = await window.zskin.getState();
       render();
@@ -376,7 +423,9 @@
     }
   };
   $("#restoreBtn").onclick = async () => {
+    const btn = $("#restoreBtn");
     setUiBusy(true);
+    btn.classList.add("loading");
     setMsg("正在恢复…");
     try {
       const r = await window.zskin.disableSkin();
@@ -384,6 +433,7 @@
     } catch (e) {
       setMsg("恢复失败：" + e.message, "err");
     } finally {
+      btn.classList.remove("loading");
       setUiBusy(false);
       state = await window.zskin.getState();
       render();
@@ -555,18 +605,20 @@
   $("#backupExportBtn").onclick = async () => {
     const btn = $("#backupExportBtn");
     btn.disabled = true;
+    btn.classList.add("loading");
     $("#backupMsg").textContent = "正在打包主题库…";
     try {
       const r = await window.zskin.backupExport();
       $("#backupMsg").textContent = r.ok ? "已导出：" + r.path : (r.canceled ? "" : "导出失败：" + r.message);
     } catch (e) {
       $("#backupMsg").textContent = "导出失败：" + e.message;
-    } finally { btn.disabled = false; }
+    } finally { btn.disabled = false; btn.classList.remove("loading"); }
   };
   $("#backupRestoreBtn").onclick = async () => {
-    if (!confirm("导入备份将整体替换当前的主题库与配置（替换前当前配置会自动留档）。继续吗？")) return;
+    if (!(await askConfirm("导入备份？", "将整体替换当前主题库与配置；替换前当前配置会自动留档（config.json.pre-restore）。", "导入备份"))) return;
     const btn = $("#backupRestoreBtn");
     btn.disabled = true;
+    btn.classList.add("loading");
     $("#backupMsg").textContent = "正在从备份恢复…";
     try {
       const r = await window.zskin.backupRestore();
@@ -582,11 +634,12 @@
       }
     } catch (e) {
       $("#backupMsg").textContent = "恢复失败：" + e.message;
-    } finally { btn.disabled = false; }
+    } finally { btn.disabled = false; btn.classList.remove("loading"); }
   };
 
   $("#importBtn").onclick = async () => {
     setUiBusy(true);
+    $("#importBtn").classList.add("loading");
     try {
       state = await window.zskin.importThemes();
       render();
@@ -596,8 +649,44 @@
       if (state.draftId) applyAccent(await window.zskin.getAccent(state.draftId));
     } catch (e) {
       setMsg("导入失败：" + e.message, "err");
-    } finally { setUiBusy(false); }
+    } finally {
+      $("#importBtn").classList.remove("loading");
+      setUiBusy(false);
+    }
   };
+
+  /* 拖拽导入：图片 / 主题包 zip 直接拖进窗口（Electron 32+ 移除 File.path，
+     路径经 preload 的 webUtils.getPathForFile 换取） */
+  let dragDepth = 0;
+  window.addEventListener("dragenter", e => {
+    e.preventDefault();
+    if (++dragDepth === 1) $("#grid").classList.add("drag-over");
+  });
+  window.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
+  window.addEventListener("dragleave", () => {
+    if (--dragDepth <= 0) { dragDepth = 0; $("#grid").classList.remove("drag-over"); }
+  });
+  window.addEventListener("drop", async e => {
+    e.preventDefault();
+    dragDepth = 0;
+    $("#grid").classList.remove("drag-over");
+    const files = [...(e.dataTransfer?.files || [])];
+    if (!files.length) return;
+    setUiBusy(true);
+    setMsg("正在导入拖入的文件…");
+    try {
+      const paths = files.map(f => { try { return window.zskin.filePath(f) || ""; } catch { return ""; } }).filter(Boolean);
+      if (!paths.length) { setMsg("拖入的文件无法读取路径", "err"); return; }
+      state = await window.zskin.importPaths(paths);
+      render();
+      if (Array.isArray(state.imported) && state.imported.length) {
+        setMsg("已导入：" + state.imported.join("、"), "ok");
+        if (state.draftId) applyAccent(await window.zskin.getAccent(state.draftId));
+      }
+    } catch (err) {
+      setMsg("导入失败：" + err.message, "err");
+    } finally { setUiBusy(false); }
+  });
 
   /* ---------- 社区主题（DreamSkin.cc 固定 API，主进程下载校验） ---------- */
   function setCommunityStatus(text, cls) {
@@ -661,6 +750,7 @@
     const ref = $("#communityInput").value.trim();
     if (!ref) { setCommunityStatus("请先粘贴 ver_ 主题 ID 或链接", "err"); return; }
     setUiBusy(true);
+    $("#communityInstallBtn").classList.add("loading");
     setCommunityStatus("解析链接…", "");
     try {
       const r = await window.zskin.installCommunity(ref);
@@ -676,6 +766,7 @@
     } catch (e) {
       setCommunityStatus("导入失败：" + e.message, "err");
     } finally {
+      $("#communityInstallBtn").classList.remove("loading");
       setUiBusy(false);
     }
   };

@@ -24,6 +24,36 @@ function scheduleLivePreview(t) {
   }, 300);
 }
 
+/* 导入核心：对话框选择与拖拽两条入口共用（路径数组 → 逐个识别 zip/图片） */
+async function importFromPaths(paths) {
+  const imported = [];
+  for (const src of paths) {
+    if (/\.zip$/i.test(src)) {
+      try {
+        const t = importThemePack(src);
+        config.get().themes.unshift(t);
+        imported.push(`主题包「${t.name}」`);
+      } catch (e) {
+        imported.push(`包 ${path.basename(src)} 导入失败：${e.message}`);
+        log("import", "主题包导入失败 " + path.basename(src) + ": " + e.message);
+      }
+      continue;
+    }
+    try {
+      const t = importImageFile(src);
+      config.get().themes.unshift(t);
+      imported.push(t.name);
+    } catch (e) {
+      imported.push(`图片 ${path.basename(src)} 导入失败：${e.message}`);
+      log("import", "图片导入失败 " + path.basename(src) + ": " + e.message);
+    }
+  }
+  if (!config.get().draftId) config.get().draftId = config.get().themes[0]?.id || null;
+  config.saveConfig();
+  refreshTray();
+  return { ...config.publicState(), imported };
+}
+
 function register() {
   ipcMain.handle("get-state", () => config.publicState());
 
@@ -36,32 +66,14 @@ function register() {
       properties: ["openFile", "multiSelections"],
     });
     if (r.canceled) return config.publicState();
-    const imported = [];
-    for (const src of r.filePaths) {
-      if (/\.zip$/i.test(src)) {
-        try {
-          const t = importThemePack(src);
-          config.get().themes.unshift(t);
-          imported.push(`主题包「${t.name}」`);
-        } catch (e) {
-          imported.push(`包 ${path.basename(src)} 导入失败：${e.message}`);
-          log("import", "主题包导入失败 " + path.basename(src) + ": " + e.message);
-        }
-        continue;
-      }
-      try {
-        const t = importImageFile(src);
-        config.get().themes.unshift(t);
-        imported.push(t.name);
-      } catch (e) {
-        imported.push(`图片 ${path.basename(src)} 导入失败：${e.message}`);
-        log("import", "图片导入失败 " + path.basename(src) + ": " + e.message);
-      }
-    }
-    if (!config.get().draftId) config.get().draftId = config.get().themes[0]?.id || null;
-    config.saveConfig();
-    refreshTray();
-    return { ...config.publicState(), imported };
+    return importFromPaths(r.filePaths);
+  });
+
+  /* 拖拽导入入口：路径由渲染层经 preload 的 webUtils.getPathForFile 换取 */
+  ipcMain.handle("import-paths", (_e, paths) => {
+    const list = (Array.isArray(paths) ? paths : []).filter(p => typeof p === "string" && p);
+    if (!list.length) return config.publicState();
+    return importFromPaths(list);
   });
 
   ipcMain.handle("rename-theme", (_e, payload) => {

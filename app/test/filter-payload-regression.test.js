@@ -64,3 +64,21 @@ test("publicState 形状完整（fake electron 版本号贯穿）", () => {
   assert.ok(Array.isArray(s.themes));
   assert.ok("gpuOff" in s);
 });
+
+test("拖拽导入入口 import-paths：图片导入、非法输入静默忽略", async () => {
+  config.loadConfig();
+  const before = config.get().themes.length;
+  const img = path.join(ctx.userDataRoot, "drop.png");
+  fs.writeFileSync(img, "fake-image");
+
+  const r = await h["import-paths"](null, [img]);
+  assert.equal(config.get().themes.length, before + 1);
+  assert.ok(r.imported.length === 1 && !r.imported[0].includes("失败"));
+  assert.ok(fs.existsSync(config.get().themes[0].file)); // 已拷入主题库
+
+  const again = await h["import-paths"](null, [null, 42, "", img]); // 脏输入被过滤，正常导入
+  assert.equal(again.imported.length, 1);
+
+  const none = await h["import-paths"](null, []); // 空列表 no-op
+  assert.equal(none.imported, undefined);
+});
