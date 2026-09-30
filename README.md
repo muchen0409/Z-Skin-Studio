@@ -45,6 +45,9 @@ npm run deploy       改动 main.js/preload.js/package.json 后同步到部署�
 npm run dist         打包 exe 到 app\dist-new\
 ```
 
+发布：改 `app/package.json` 的 version + 在 `app/CHANGELOG.md` 写对应小节，push 到 main 即自动
+跑测试、打包并发布 GitHub Release（版本号没变就不会触发；手动 push `v*` tag 亦可）。
+
 代码结构：`main.js`（生命周期 / GPU 开关 / ZCode 启动）+ `src\`（配置、CDP、换肤引擎、主题包、版本、轮换、IPC）+ `ui\`（index.html / styles.css / renderer.js）。
 
 ## 常见问题

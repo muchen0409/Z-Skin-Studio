@@ -1,15 +1,49 @@
 name: Release
 
+# 两种触发：
+# 1. push 到 main：package.json 版本号若无对应 v* tag → 自动构建并发布该版本
+#    （版本没变的日常推送直接跳过，不会每个 commit 出一个 Release）
+# 2. 手动 push v* tag：直接构建发布（与旧行为兼容）
 on:
   push:
+    branches: [main]
     tags: ["v*"]
 
 permissions:
   contents: write
 
+# 串行化发布构建：连续 push 时排队执行，配合 create-or-upload 防止重复发布打架
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      should: ${{ steps.v.outputs.should }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./app/package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "should=true" >> "$GITHUB_OUTPUT"          # 显式打 tag 视为明确发布意图
+          elif git ls-remote --tags origin "refs/tags/v${VERSION}^*" | grep -q "v${VERSION}"; then
+            echo "should=false" >> "$GITHUB_OUTPUT"         # 该版本已发布过，跳过
+          else
+            echo "should=true" >> "$GITHUB_OUTPUT"          # 新版本 → 自动发布
+          fi
+
   build:
+    needs: version-check
+    if: needs.version-check.outputs.should == 'true'
     runs-on: windows-latest
+    env:
+      VERSION: ${{ needs.version-check.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -21,16 +55,30 @@ jobs:
         working-directory: app
         run: npm ci --no-audit --no-fund
 
+      - name: 单元测试
+        working-directory: app
+        run: npm test
+
       - name: 打包（build.mjs 需要 electron 缓存 zip，此处不跳过 postinstall）
         working-directory: app
         run: npm run dist
 
       - name: 压缩产物
         shell: pwsh
-        run: Compress-Archive -Path app/dist-new/ZCodeSkinLauncher-win32-x64 -DestinationPath "ZCodeSkinLauncher-${{ github.ref_name }}-win32-x64.zip"
+        run: Compress-Archive -Path app/dist-new/ZCodeSkinLauncher-win32-x64 -DestinationPath "ZCodeSkinLauncher-v${{ env.VERSION }}-win32-x64.zip"
 
-      - name: 发布 GitHub Release（notes 取自 tag 名自动生成）
+      - name: 从 CHANGELOG 抽取版本说明
+        working-directory: app
+        shell: bash
+        run: node extract-notes.cjs "${VERSION}" > ..\body.md && echo "notes ready"
+
+      - name: 创建或补充 GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
-        run: gh release create "${{ github.ref_name }}" --title "${{ github.ref_name }}" --generate-notes ZCodeSkinLauncher-*.zip
+        run: |
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" --clobber "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
+          else
+            gh release create "v${VERSION}" --title "v${VERSION}" --notes-file body.md "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
+          fi

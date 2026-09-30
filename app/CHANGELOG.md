@@ -18,6 +18,9 @@ UI 优化专项：删除确认、应用图标、忙碌反馈、拖拽导入、�
 ### 变更
 - 主透明度数值显示统一为百分比（`.10` → `10%`），与滤镜/分区透明度同一读法
 - 拖拽导入与对话框导入共用 `importFromPaths` 核心（新增 `import-paths` IPC）
+- **发布自动化**：push 到 main 时若 `package.json` 版本没有对应 `v*` tag，自动跑测试、
+  Windows 打包并发布 GitHub Release（说明自动取自 CHANGELOG 对应小节，`extract-notes.cjs`）；
+  版本未变的日常推送自动跳过；手动 push tag 的方式保留兼容
 
 ## 2.4.0 (2026-09-29)
 
