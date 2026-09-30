@@ -70,7 +70,7 @@ jobs:
       - name: 从 CHANGELOG 抽取版本说明
         working-directory: app
         shell: bash
-        run: node extract-notes.cjs "${VERSION}" > ..\body.md && echo "notes ready"
+        run: node extract-notes.cjs "${VERSION}" > ../body.md && echo "notes ready"
 
       - name: 创建或补充 GitHub Release
         env:
@@ -80,5 +80,5 @@ jobs:
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
             gh release upload "v${VERSION}" --clobber "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
           else
-            gh release create "v${VERSION}" --title "v${VERSION}" --notes-file body.md "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
+            gh release create "v${VERSION}" --title "v${VERSION}" --notes-file ../body.md "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
           fi
