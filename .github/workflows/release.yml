@@ -72,6 +72,7 @@ jobs:
         shell: bash
         run: node extract-notes.cjs "${VERSION}" > ../body.md && echo "notes ready"
 
+      # gh 步骤无 working-directory，跑在仓库根：body.md 由上一步从 app/ 写到根，zip 也在根
       - name: 创建或补充 GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -80,5 +81,5 @@ jobs:
           if gh release view "v${VERSION}" >/dev/null 2>&1; then
             gh release upload "v${VERSION}" --clobber "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
           else
-            gh release create "v${VERSION}" --title "v${VERSION}" --notes-file ../body.md "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
+            gh release create "v${VERSION}" --title "v${VERSION}" --notes-file body.md "ZCodeSkinLauncher-v${VERSION}-win32-x64.zip"
           fi
